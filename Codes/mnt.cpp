@@ -10,7 +10,7 @@ using namespace std;
 
 mnt::mnt(std::string filename) {
     std::ifstream f(filename);
-    if (!f) {
+    if (!f) { // vérification de l'ouverture du fichier
         std::cerr << "Error: Unable to open file " << filename << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -27,16 +27,16 @@ mnt::mnt(std::string filename) {
 
     
     #pragma omp parallel for collapse(2) // utitilisation de omp parallel for pour paralleliser les boucles et collapse(2) pour les boucles imbriquées 
-    for (int i = 0; i < nb_lignes + 2; i++) {
+    for (int i = 0; i < nb_lignes + 2; i++) { // initialisation du terrain, de la direction et de l'accumulation dans la même boucle
         for (int j = 0; j < nb_cols; j++) {
-            terrain[i * nb_cols + j] = (i == 0 || i == nb_lignes + 1) ? no_value : 0;
+            terrain[i * nb_cols + j] = (i == 0 || i == nb_lignes + 1) ? no_value : 0; 
             direction[i * nb_cols + j] = (i == 0 || i == nb_lignes + 1) ? no_dir_value : -1;
             accumulation[i * nb_cols + j] = (i == 0 || i == nb_lignes + 1) ? 0 : -1;
         }
     }
 
     #pragma omp parallel for collapse(2)
-    for (int i = 0; i < nb_lignes; i++) {
+    for (int i = 0; i < nb_lignes; i++) { // initialisation du bassin 
         for (int j = 0; j < nb_cols; j++) {
             bassin[i * nb_cols + j] = -1;
         }
@@ -60,7 +60,7 @@ void mnt::affichageTerrain() {
 }
 
 void mnt::calculDirection() {
-    #pragma omp parallel for  // initialisation des premières et dernières lignes
+    #pragma omp parallel for  // initialisation des premières et dernières lignes pour la direction
     for (int j = 0; j < nb_cols; j++) {
         direction[j] = 1;
         direction[(nb_lignes + 1) * nb_cols + j] = 5; 
@@ -76,7 +76,7 @@ void mnt::calculDirection() {
             if (val != no_value) {
                 if (j == 0) {
                     float tab_bord[5] = {
-                        terrain[(x - 1) * nb_cols + y], // calcul des valeurs des bords pour chaque cellule de la grille
+                        terrain[(x - 1) * nb_cols + y], // calcul des valeurs des bords pour chaque cellule de la grille avec des inidice simplifiés
                         terrain[(x - 1) * nb_cols + (y + 1)],
                         terrain[x * nb_cols + (y + 1)],
                         terrain[(x + 1) * nb_cols + (y + 1)],
