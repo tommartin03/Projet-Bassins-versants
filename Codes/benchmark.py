@@ -2,6 +2,7 @@ import subprocess
 import time
 import matplotlib.pyplot as plt
 
+# méthode pour exécuter le benchmark du programme bassin avec OpenMP en utilisant les fichiers de test et le nombre de threads spécifiés
 def run_benchmark(files, num_threads, repetitions):
     results = []
 
@@ -26,6 +27,7 @@ def run_benchmark(files, num_threads, repetitions):
     
     return results
 
+# méthode pour afficher les résultats du benchmark sous forme de graphique avec matplotlib
 def plot_results(results):
     plt.figure(figsize=(10, 6))
 

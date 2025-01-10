@@ -19,13 +19,14 @@ mnt::mnt(std::string filename) {
     int tmp;
     f >> tmp >> tmp >> tmp >> no_value;
 
+    // initialisation dynamique des tableaux
     terrain = new float[(nb_lignes + 2) * nb_cols];
     direction = new int[(nb_lignes + 2) * nb_cols];
     accumulation = new int[(nb_lignes + 2) * nb_cols];
     bassin = new int[nb_lignes * nb_cols];
 
-    // Initialize arrays (consistent with sequential logic)
-    #pragma omp parallel for collapse(2)
+    
+    #pragma omp parallel for collapse(2) // utitilisation de omp parallel for pour paralleliser les boucles et collapse(2) pour les boucles imbriquées 
     for (int i = 0; i < nb_lignes + 2; i++) {
         for (int j = 0; j < nb_cols; j++) {
             terrain[i * nb_cols + j] = (i == 0 || i == nb_lignes + 1) ? no_value : 0;
@@ -41,8 +42,8 @@ mnt::mnt(std::string filename) {
         }
     }
 
-    // Load terrain values (sequential)
-    for (int i = 0; i < nb_lignes; i++) {
+
+    for (int i = 0; i < nb_lignes; i++) { // chargement des valeurs du terrain (séquentiel)
         for (int j = 0; j < nb_cols; j++) {
             f >> terrain[(i + 1) * nb_cols + j];
         }
@@ -59,15 +60,13 @@ void mnt::affichageTerrain() {
 }
 
 void mnt::calculDirection() {
-    // Initialize the first and last rows explicitly
-    #pragma omp parallel for
+    #pragma omp parallel for  // initialisation des premières et dernières lignes
     for (int j = 0; j < nb_cols; j++) {
-        direction[j] = 1; // First row
-        direction[(nb_lignes + 1) * nb_cols + j] = 5; // Last row
+        direction[j] = 1;
+        direction[(nb_lignes + 1) * nb_cols + j] = 5; 
     }
 
-    // Compute directions for the main grid
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for collapse(2) // calul des direction pour la grille principale
     for (int i = 0; i < nb_lignes; i++) {
         for (int j = 0; j < nb_cols; j++) {
             int x = i + 1;
@@ -77,7 +76,7 @@ void mnt::calculDirection() {
             if (val != no_value) {
                 if (j == 0) {
                     float tab_bord[5] = {
-                        terrain[(x - 1) * nb_cols + y],
+                        terrain[(x - 1) * nb_cols + y], // calcul des valeurs des bords pour chaque cellule de la grille
                         terrain[(x - 1) * nb_cols + (y + 1)],
                         terrain[x * nb_cols + (y + 1)],
                         terrain[(x + 1) * nb_cols + (y + 1)],
@@ -124,21 +123,20 @@ void mnt::calculAccumulation() {
         stop = 0;
         iteration_count++;
 
-        // Parallelized propagation loop
-        #pragma omp parallel for collapse(2) reduction(+ : stop)
+ 
+        #pragma omp parallel for collapse(2) reduction(+ : stop) // parallelisation de la boucle de propagation, reduction de la variable stop pour éviter les conflits de lecture et d'écriture 
         for (int i = 0; i < nb_lignes; i++) {
             for (int j = 0; j < nb_cols; j++) {
                 int x = i + 1;
                 int y = j;
                 int d = direction[x * nb_cols + y];
 
-                // Skip if already computed or invalid direction
-                if (d != no_dir_value && accumulation[x * nb_cols + y] == -1) {
+                if (d != no_dir_value && accumulation[x * nb_cols + y] == -1) { // si la direction est valide et que l'accumulation n'est pas encore calculée
                     int res = -1;
 
                     if (j == 0) {
                         int tab_bord[10] = {
-                            accumulation[(x - 1) * nb_cols + y],
+                            accumulation[(x - 1) * nb_cols + y], //
                             accumulation[(x - 1) * nb_cols + (y + 1)],
                             accumulation[x * nb_cols + (y + 1)],
                             accumulation[(x + 1) * nb_cols + (y + 1)],
@@ -195,7 +193,6 @@ void mnt::calculAccumulation() {
             }
         }
 
-        // Debugging: Print intermediate states
         std::cout << "Iteration: " << iteration_count << ", Stop: " << stop << std::endl;
         //affichageAccumulation();
 
@@ -215,14 +212,12 @@ void mnt::calculBassin() {
             int y = j;
 
             if (direction[x * nb_cols + y] != no_dir_value) {
-                // If the current cell's basin is not assigned
-                if (bassin[i * nb_cols + j] == -1) {
+                if (bassin[i * nb_cols + j] == -1) { // si le bassin n'est pas encore assigné
                     bassin[i * nb_cols + j] = f_bassin(
                         bassin, direction + nb_cols, nb_lignes, nb_cols, i, j, &num);
                 }
             } else {
-                // Mark cells with invalid direction as no basin
-                bassin[i * nb_cols + j] = no_bassin_value;
+                bassin[i * nb_cols + j] = no_bassin_value; // si la direction est absente, on assigne une valeur spéciale
             }
         }
     }
